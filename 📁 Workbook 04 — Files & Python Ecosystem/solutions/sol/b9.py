@@ -1,0 +1,1 @@
+# a PATH is an environmental variable that holds a list of directories that the shell searches through when you type a command in the terminal.

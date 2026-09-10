@@ -7,7 +7,7 @@ from exceptions import PlayerNotFoundError
 from exceptions import AcademyError
 
 academy = Academy('Val Academy')
-val = Player("Val",29,"CDM",7.5)
+val = Player("",29,"CDM",7.5)
 joe = Player("Joe",25,"CF",7.8)
 jude = Player("Jude",24,"CAM",8.2)
 

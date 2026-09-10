@@ -1,4 +1,7 @@
-# helpers
+# ./helpers.py
+from exceptions import InvalidPlayerError
+from exceptions import AcademyError
+
 def require_non_empty(value: str, field_name: str) -> None:
   if not value.strip():
     raise InvalidPlayerError(f"{field_name} cannot be empty.")
@@ -9,7 +12,7 @@ def validate_rating(value: float | int):
     raise InvalidPlayerError("Player rating must be in the range 0-10.")
 
 
-def check_empty_player_list(player_list: dict[str, Player]):
+def check_empty_player_list(player_list: dict[str, "Player"]):
   if not player_list:
     raise AcademyError("No registered players.")
 

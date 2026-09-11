@@ -3,8 +3,8 @@
 """Helpful validation functions used across the academy system."""
 
 # required imports so relevant custom exceptions can be raised
-from solutions.bf.fams.exceptions import InvalidPlayerError
-from solutions.bf.fams.exceptions import AcademyError
+from exceptions import InvalidPlayerError
+from exceptions import AcademyError
 
 def require_non_empty(value: str, field_name: str, case = 'player') -> None:
   """checks that value is not an empty string

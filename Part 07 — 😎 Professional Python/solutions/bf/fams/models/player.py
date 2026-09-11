@@ -3,9 +3,9 @@
 '''Contains the player model and player actions'''
 
 # These helper functions are needed to validate arguments before player initialization
-from solutions.bf.fams.helpers import require_non_empty
-from solutions.bf.fams.helpers import validate_age
-from solutions.bf.fams.helpers import validate_rating
+from helpers import require_non_empty
+from helpers import validate_age
+from helpers import validate_rating
 
 class Player:
   '''Creates a player object and holds player actions.

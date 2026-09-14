@@ -503,7 +503,7 @@ STATISTICS
     ✓ boundary cases
     ✓ empty academy
 
-
+ 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 

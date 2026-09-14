@@ -13,7 +13,22 @@ from models.academy import Academy
 from exceptions import InvalidPlayerError
 from exceptions import PlayerAlreadyExistsError
 from exceptions import PlayerNotFoundError
+from exceptions import AcademyError
 
+@pytest.fixture
+def academy():
+    return Academy("My Football Academy")
+
+@pytest.fixture
+def academy_with_players(academy):
+    (
+        academy
+            .add_player(Player("Val",27,"CDM",7.8))
+            .add_player(Player("Jude",23,"CAM",8.0))
+            .add_player(Player("Joe",21,"CM",6.5))
+            .add_player(Player("Philip",30,"ST",8.0))
+    )
+    return academy
 
 def test_player_is_valid():
     """Tests whether a successful player initialization."""
@@ -23,50 +38,56 @@ def test_player_is_valid():
     assert val.position == "CDM"
     assert val.rating == 7.8
 
-def test_empty_player_name_raises_invalid_player_error():
+@pytest.mark.parametrize(
+    "value, error",
+    [
+        ("", InvalidPlayerError),
+        (" ", InvalidPlayerError)
+    ]
+)
+def test_empty_player_name_raises_invalid_player_error(value,error):
     """Tests whether `InvalidPlayerError` is called on an empty name field."""
-    with pytest.raises(InvalidPlayerError):
-        Player("",27,"CDM",7.8)
+    with pytest.raises(error):
+        Player(value,27,"CDM",7.8)
+
 
 def test_invalid_player_age_raises_invalid_player_error():
     """Tests whether `InvalidPlayerError` is called on negative age values."""
     with pytest.raises(InvalidPlayerError):
         Player("Val",-1,"CDM",7.8)
 
-def test_player_empty_position_raises_invalid_player_error():
+@pytest.mark.parametrize(
+    "value, error",
+    [
+        ("", InvalidPlayerError),
+        (" ", InvalidPlayerError)
+    ]
+)
+def test_player_empty_position_raises_invalid_player_error(value,error):
     """Tests whether `InvalidPlayerError` is called on empty position field."""
-    with pytest.raises(InvalidPlayerError):
-        Player("Val",27," ",7.8)
+    with pytest.raises(error):
+        Player("Val",27,value,7.8)
 
-def test_player_rating_below_zero_raises_invalid_player_error():
-    """Tests whether `InvalidPlayerError` is called on rating values less than 0"""
-    with pytest.raises(InvalidPlayerError):
-        Player("Val",27,"CDM",-0.01)
-
-def test_player_rating_above_ten_raises_invalid_player_error():
-    """Tests whether `InvalidPlayerError` is called on rating values greater than 10"""
-    with pytest.raises(InvalidPlayerError):
-        Player("Val",27,"CDM",10.01)
-
-@pytest.fixture
-def academy():
-    return Academy("My Football Academy")
+@pytest.mark.parametrize(
+    "value, error",
+    [
+        (-0.01, InvalidPlayerError),
+        (10.01, InvalidPlayerError)
+    ]
+)
+def test_player_rating_below_zero_or_above_ten_raises_invalid_player_error(value,error):
+    """Tests whether `InvalidPlayerError` is called on rating values less than 0 or greater than 10"""
+    with pytest.raises(error):
+        Player("Val",27,"CDM",value)
 
 def test_academy_add_player(academy):
     """Tests successful player registeration for single player"""
     academy.add_player(Player("Val",27,"CDM",7.8))
     assert len(academy.players) == 1
 
-def test_add_player_multiple_players(academy):
+def test_add_player_multiple_players(academy_with_players):
     """Tests successful player registeration for multiple players"""
-    (
-        academy
-            .add_player(Player("Val",27,"CDM",7.8))
-            .add_player(Player("Jude",23,"CAM",8.0))
-            .add_player(Player("Joe",21,"CM",7.5))
-            .add_player(Player("Philip",30,"ST",6.5))
-    )
-    assert len(academy.players) == 4
+    assert len(academy_with_players.players) == 4
 
 def test_add_player_retrieve_added_player(academy):
     """Tests whether successfully added players are stored and accessable"""
@@ -129,26 +150,69 @@ def test_remove_player_raises_player_not_found_error_for_missing_player(academy)
     with pytest.raises(PlayerNotFoundError):
         academy.remove_player("Jinx")
 
-def test_update_rating(academy):
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (0.0, 0.0),
+        (5.0, 5.0),
+        (10.0,10.0)
+    ]
+)
+def test_update_rating(academy, value, expected):
     """Tests whether player rating is updated."""
     academy.add_player(Player("Val",27,"CDM",7.8))
-    academy.update_rating("Val",9.0)
-    assert academy.players['val'].rating == 9.0
+    academy.update_rating("Val",value)
+    assert academy.players['val'].rating == expected
 
-def test_update_rating_raises_invalid_player_error_for_rating_value_below_zero(academy):
-    """Tests whether InvalidPlayerError is raised for rating values below 0"""
+@pytest.mark.parametrize(
+    "value, error",
+    [
+        (-0.01, InvalidPlayerError),
+        (10.01, InvalidPlayerError)
+    ]
+)
+def test_update_rating_raises_invalid_player_error_for_rating_value_below_zero_or_above_ten(academy, value, error):
+    """Tests whether InvalidPlayerError is raised for rating values below 0 or above 10"""
     academy.add_player(Player("Val",27,"CDM",7.8))
-    with pytest.raises(InvalidPlayerError):
-        academy.update_rating("Val",-0.01)
-
-def test_update_rating_raises_invalid_player_error_for_rating_value_above_ten(academy):
-    """Tests whether InvalidPlayerError is raised for rating values above 10"""
-    academy.add_player(Player("Val",27,"CDM",7.8))
-    with pytest.raises(InvalidPlayerError):
-        academy.update_rating("Val",10.01)
+    with pytest.raises(error):
+        academy.update_rating("Val",value)
 
 def test_update_rating_raises_player_not_found_error_for_missing_player(academy):
     """Tests whether PlayerNotFoundError is raised for non-existent players"""
     academy.add_player(Player("Val",27,"CDM",7.8))
     with pytest.raises(PlayerNotFoundError):
         academy.update_rating("Jinx",5.9)
+
+def test_average_rating(academy_with_players):
+    """Tests for average rating of all players in the academy"""
+    average_rating = academy_with_players.average_rating()
+    assert average_rating == pytest.approx(7.575)
+
+def test_average_rating_raises_academy_error_for_empty_academy(academy):
+    """Tests whether AcademyError is raised when no player is registered in the academy."""
+    with pytest.raises(AcademyError):
+        academy.average_rating()
+
+def test_top_player_single_player(academy):
+    """Tests for academy's top player where one player has the highest rating"""
+    (
+        academy
+            .add_player(Player("Val",27,"CDM",7.8))
+            .add_player(Player("Jude",23,"CAM",8.0))
+            .add_player(Player("Joe",21,"CM",6.5))
+            .add_player(Player("Philip",30,"ST",5.5))
+    )
+    top_player = academy.top_player()
+    assert top_player.name == "Jude"
+
+def test_top_player_multiple_players(academy_with_players):
+    """Tests for academy's top player where multiple players have the same top rating
+    
+    Returns the first player with the highest rating"""
+    top_player = academy_with_players.top_player()
+    assert top_player.name == "Jude"
+
+def test_top_player_raises_academy_error_for_empty__academy(academy):
+    """Tests whether AcademyError is raised when no player is registered in the academy."""
+    with pytest.raises(AcademyError):
+        academy.top_player()

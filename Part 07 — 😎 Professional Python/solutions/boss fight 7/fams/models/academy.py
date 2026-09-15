@@ -3,7 +3,7 @@
 """Manages players data for the football academy."""
 
 # These helper functions are needed to validate arguments before academy actions are executed
-from helpers import check_empty_player_list
+from helpers import require_non_empty_academy
 from helpers import require_non_empty
 from helpers import validate_rating
 
@@ -12,7 +12,7 @@ from exceptions import PlayerAlreadyExistsError
 from exceptions import PlayerNotFoundError
 
 # Required for type hinting for the player object
-from models.player import Player
+from models.player import Player               
 
 class Academy:
   """
@@ -72,6 +72,10 @@ class Academy:
     self.name = name
     self.players: dict[str, Player] = {}
 
+  def __len__(self):
+    """Returns the total number of registered players in the academy"""
+    return len(self.players)
+
   def add_player(self, player: "Player") -> "Academy":
     """
       Adds a player object to the academy.
@@ -105,7 +109,7 @@ class Academy:
         - PlayerNotFoundError - players does not exist in academy records.
     """
 
-    check_empty_player_list(self.players)
+    require_non_empty_academy(self.players)
     require_non_empty(name, "Name")
     key = name.lower()
     if key in self.players:
@@ -141,7 +145,7 @@ class Academy:
       Returns Academy - self, enabling self chaining.
       
       Raises:
-        - Calls validate_rating which raises InvalidPlayerError if rating is not within the range of 0-10.
+        - Calls validate_rating which raises InvalidPlayerError if rating is not within the valid range (see MIN_RATING/MAX_RATING in helpers module).
         - Calls `find_player` which raises AcademyError if academy player list is empty
         - Calls `find_player` which raises InvalidPlayerError if player name is empty
         - Calls `find_player` which raises PlayerNotFoundError if player is not registered.
@@ -159,9 +163,9 @@ class Academy:
         - Average rating of all players(`float`)
       
       Raises:
-        - Calls `check_empty_player_list` which raises AcademyError if academy has no registered players.
+        - Calls `require_non_empty_academy` which raises AcademyError if academy has no registered players.
     """
-    check_empty_player_list(self.players)
+    require_non_empty_academy(self.players)
     total_ratings = 0
     for player in self.players.values():
       total_ratings += player.rating
@@ -175,9 +179,9 @@ class Academy:
         - Highest rated player object(`Player`)
       
       Raises:
-        - Calls `check_empty_player_list` which raises AcademyError if academy has no registered players.
+        - Calls `require_non_empty_academy` which raises AcademyError if academy has no registered players.
     """
-    check_empty_player_list(self.players)
+    require_non_empty_academy(self.players)
     players = list(self.players.values())
     current = players[0]
     for player in players:

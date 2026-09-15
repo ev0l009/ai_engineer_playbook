@@ -28,13 +28,13 @@ class Player:
       - name (`str`): player's name
       - age (`int`): player's age and must be an integer greater than or equal to 0.
       - position (`str`): player's position
-      - rating (`float | int`): player's rating and must be a float or integer with the range of 0-10.
+      - rating (`float | int`): player's rating and must be a float or integer within the valid range (see MIN_RATING/MAX_RATING in helpers module).
     
     Returns None
     
     Raises:
       - InvalidPlayerError - empty name or position string
-      - InvalidPlayerError - invalid rating(must be an int or float from 0-10)
+      - InvalidPlayerError - invalid rating must be an int or float within the valid range (see MIN_RATING/MAX_RATING in helpers module).
       - InvalidPlayerError - invalid age(must be int greater than or equal to 0.)'''
 
     # Order matters: first invalid field is the one reported to the caller.

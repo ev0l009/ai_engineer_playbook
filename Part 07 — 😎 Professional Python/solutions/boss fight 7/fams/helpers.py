@@ -6,24 +6,31 @@
 from exceptions import InvalidPlayerError
 from exceptions import AcademyError
 
-def require_non_empty(value: str, field_name: str, case = 'player') -> None:
+MIN_RATING = 0
+MAX_RATING = 10
+
+case_labels = {
+  'player': InvalidPlayerError, 
+  'academy': AcademyError
+}
+
+def require_non_empty(value: str, field_name: str, case) -> None:
   """checks that value is not an empty string
 
   Args:
     - value (`str`): value to check
     - field_name (`str`): name of field to be used in error message
+    - case (`str`): context or field to raise appropriate errors (player or academy)
     
   Returns None
   
   Raises:
     - InvalidPlayerError - string must not be an empty string"""
+  if case not in list(case_labels.keys()):
+      raise AcademyError("Invalid case argument")
   if not value.strip():
-    if case == 'player':
-      raise InvalidPlayerError(f"{field_name} cannot be empty.")
-    else:
-      raise AcademyError(f"{field_name} cannot be empty.")
+    raise case_labels[case]("Field cannot be empty.")
 
-  
 def validate_rating(value: float | int):
   """checks that value is either a float or an int
   
@@ -34,18 +41,18 @@ def validate_rating(value: float | int):
   
   Raises:
     - InvalidPlayerError - player rating must be an int or a float
-    - InvalidPlayerError - player rating must be within the range 0-10.""" 
+    - InvalidPlayerError - player rating must be within the valid range (see MIN_RATING/MAX_RATING in this module).""" 
   if not isinstance(value,int) and not isinstance(value,float):
     raise InvalidPlayerError("Player rating must be of type float or int.")
-  if value < 0 or value > 10:
-    raise InvalidPlayerError("Player rating must be in the range 0-10.")
+  if value < MIN_RATING or value > MAX_RATING:
+    raise InvalidPlayerError(f"Player rating must be in the range {MIN_RATING}-{MAX_RATING}.")
 
 
-def check_empty_player_list(player_list: dict[str, "Player"]):
+def require_non_empty_academy(player_list: dict[str, "Player"]):
   """checks that players dict is not empty
 
   Args:
-    - player_list (`dict[str, "Player"])`): dictionary containing academy player objects
+    - player_list (`dict[str, "Player"]`): dictionary containing academy player objects
     
   Returns None
   

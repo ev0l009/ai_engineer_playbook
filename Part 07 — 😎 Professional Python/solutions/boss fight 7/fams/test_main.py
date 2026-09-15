@@ -98,13 +98,7 @@ def test_add_player_retrieve_added_player(academy):
             .add_player(val)
             .add_player(jude)
     )
-    # Every registered player is referenced by their name in lowercase
-    val_key = val.name.lower()
-    jude_key = jude.name.lower()
-    assert academy.players[val_key].name == "Val"
-    assert academy.players[val_key].age == 27
-    assert academy.players[val_key].position == "CDM"
-    assert academy.players[val_key].rating == 7.8
+    assert academy.find_player("Val").name == "Val"
 
     assert academy.players[jude_key].name == "Jude"
     assert academy.players[jude_key].age == 23

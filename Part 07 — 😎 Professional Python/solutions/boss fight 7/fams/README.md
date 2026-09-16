@@ -1,6 +1,6 @@
 # Football Academy Management System(FAMS)
 ## Overview
-FAMS is a backend management service built for football managers and coaches to enable them handle various tasks including player registeration, removal, update, squad assessments.
+FAMS is a backend management service built for football managers and coaches to enable them handle various tasks including player registration, removal, update, squad assessments.
 
 
 ## Features
@@ -14,13 +14,21 @@ FAMS is a backend management service built for football managers and coaches to 
 
 ## Project Structure
 fams
+    |
     |_ models
+    |   |
     |   |_ academy.py
+    |   |
     |   |_ player.py
+    | 
     |_ main.py
+    |
     |_ test_main.py
+    |
     |_ helpers.py
+    |
     |_ exceptions.py
+    |
     |_ README.md
 
 
@@ -33,14 +41,29 @@ fams
 
 ## Usage
 ### Methods
-- `Player`: initializes a player object
+- `Player`: initializes a player object and required to run academy methods.
 
 #### Example
 ```python
-val = Player("Val", 29, "CDM", 2.9)
-print(val.name) # Output: Val
-print(val.position) # Output: CDM
-print(val.rating) # Output: 2.9
+try:
+   val = Player("Val",24,"CAM",8.2)
+except InvalidPlayerError as err:
+   print(err) # raise errors if any
+else:
+   print(val) # Output: Player info
+```
+
+
+- `Academy`: initializes the academy object and required to run Academy methods.
+
+#### Example
+```python
+try:
+    academy = Academy("My Football Academy")
+except AcademyError as err:
+   print(err) # raise errors if any
+else:
+    print(academy.name) # Output: My Football Academy
 ```
 
 
@@ -48,8 +71,20 @@ print(val.rating) # Output: 2.9
 
 #### Example
 ```python
-academy.add_player(val)
-# → Academy object (supports chaining, e.g. academy.add_player(a).add_player(b))
+try:
+    (
+        academy
+            .add_player(Player("Val",29,"CDM",7.5))
+            .add_player(Player("Joe",25,"CF",7.8))
+            .add_player(Player("Jude",24,"CAM",8.2))
+    )
+except InvalidPlayerError as err:
+  print(f'Error: {err}')
+except PlayerAlreadyExistsError as err:
+  print(f'Error: {err}')
+else:
+  print('Players registration successful')
+# → Academy object (supports chaining as shown above)
 ```
 
 
@@ -57,9 +92,16 @@ academy.add_player(val)
 
 #### Example
 ```python
-player = academy.find_player("Val")
-print(player.name) # Output: Val
-print(player.age) # Output: 29
+try:
+   player = academy.find_player("Jude")
+except InvalidPlayerError as err:
+   print(f'Error: {err}')
+except PlayerNotFoundError as err:
+   print(err)
+except AcademyError as err:
+   print(err)
+else:
+   print(player) # Prints player info or raises relevant errors
 ```
 
 
@@ -67,8 +109,16 @@ print(player.age) # Output: 29
 
 #### Example
 ```python
-academy.remove_player("Val")
-academy.find_player("Val") # Raises as error as "Val" has been removed from the academy.
+try:
+   academy.remove_player('Val')
+except InvalidPlayerError as err:
+   print(f'Error: {err}')
+except PlayerNotFoundError as err:
+   print(err)
+except AcademyError as err:
+   print(err)
+else:
+   print(f"Player successfully unregistered.")
 ```
 
 
@@ -76,33 +126,65 @@ academy.find_player("Val") # Raises as error as "Val" has been removed from the 
 
 #### Example
 ```python
-academy.update_rating("Val", 9.7)
-val = academy.find_player("Val")
-print(val.rating) # Output: 9.7
+try:
+   academy.update_rating("Val",9.8)
+except InvalidPlayerError as err:
+   print(f'Rating update Error: {err}')
+except PlayerNotFoundError as err:
+   print(err)
+except AcademyError as err:
+   print(err)
+else:
+   print("Player rating updated successfully ")
+   print(academy.find_player("Val").rating)
 ```
 
 
-- `average_rating()`: returns the average rating of players in the academy
+- `average_rating`: returns the average rating of players in the academy
 
 #### Example
 ```python
-academy.average_rating()
-# Average rating: 7.8
+try:
+   average_rating = academy.average_rating()
+except AcademyError as err:
+   print(err)
+else:
+   print(f'Average rating: {average_rating:.2f}')
 ```
 
 
-- `top_player()`: returns the player with the highest rating
+- `top_player`: returns the player with the highest rating
 
 #### Example
 ```python
-academy.top_player()
-# Top player: Val with rating 7.8
+try:
+  player = academy.top_player()
+except AcademyError as err:
+  print(err)
+else:
+  print(f"Top player: {player.name}\nRating: {player.rating}")
 ```
 
-
+## Exceptions
+```text
+AcademyError
+    |
+    |_ RegistrationError
+    |   |
+    |   |_PlayerAlreadyExistsError
+    |
+    |_ PlayerNotFoundError
+    |
+    |_ InvalidPlayerError
+```
+- AcademyError - Generic academy error
+- RegistrationError - Academy sub-error raised during failed registration operations.
+- PlayerNotFoundError - Academy sub-error raised when searching for an unregistered player.
+- PlayerAlreadyExistsError - Registration sub-error raised when attempting to register already registered player.
+- InvalidPlayerError - Academy sub-error raised when an invalid player argument is passed.
 
 ## Testing
-- All tests files are available in`test_main.py`. Use `pytest -v` to run tests
+- All test files are available in `test_main.py`. Use `pytest -v` to run tests
 
 
 ## Design notes

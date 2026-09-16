@@ -5,6 +5,7 @@
 # These helper functions are needed to validate arguments before academy actions are executed
 from helpers import require_non_empty
 from helpers import validate_rating
+from helpers import require_non_empty_academy
 
 # These custom exceptions are needed to expose a more meaningful high-level error interface
 from exceptions import PlayerAlreadyExistsError
@@ -110,7 +111,7 @@ class Academy:
     """
 
     require_non_empty_academy(self.players)
-    require_non_empty(name, "Name")
+    require_non_empty(name, "Name", error = PlayerNotFoundError)
     key = name.lower()
     if key in self.players:
       return self.players[key]

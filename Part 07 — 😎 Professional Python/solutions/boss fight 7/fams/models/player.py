@@ -7,6 +7,8 @@ from helpers import require_non_empty
 from helpers import validate_age
 from helpers import validate_rating
 
+from exceptions import InvalidPlayerError
+
 class Player:
   '''Creates a player object and holds player actions.
   
@@ -40,9 +42,9 @@ class Player:
     # Order matters: first invalid field is the one reported to the caller.
     # All checks run before any attribute is set, so init never leaves
     # a partially-constructed Player on failure.
-    require_non_empty(name, "Name")
+    require_non_empty(name, "Player Name", error = InvalidPlayerError)
     validate_age(age)
-    require_non_empty(position, "Position")
+    require_non_empty(position, "Player Position", error = InvalidPlayerError)
     validate_rating(rating)
 
     self.name = name

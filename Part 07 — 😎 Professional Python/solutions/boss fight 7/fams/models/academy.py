@@ -3,13 +3,13 @@
 """Manages players data for the football academy."""
 
 # These helper functions are needed to validate arguments before academy actions are executed
-from helpers import require_non_empty_academy
 from helpers import require_non_empty
 from helpers import validate_rating
 
 # These custom exceptions are needed to expose a more meaningful high-level error interface
 from exceptions import PlayerAlreadyExistsError
 from exceptions import PlayerNotFoundError
+from exceptions import AcademyError
 
 # Required for type hinting for the player object
 from models.player import Player               
@@ -68,7 +68,7 @@ class Academy:
       Raises:
         - AcademyError - Name cannot be empty.
     """
-    require_non_empty(name, "Academy Name", case="academy")
+    require_non_empty(name, "Academy Name", error = AcademyError)
     self.name = name
     self.players: dict[str, Player] = {}
 

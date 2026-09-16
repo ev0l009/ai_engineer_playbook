@@ -21,7 +21,7 @@ fams
     |_ test_main.py
     |_ helpers.py
     |_ exceptions.py
-    |_ Readme.md
+    |_ README.md
 
 
 ## Installation
@@ -35,7 +35,6 @@ fams
 ### Methods
 - `Player`: initializes a player object
 
-
 #### Example
 ```python
 val = Player("Val", 29, "CDM", 2.9)
@@ -47,7 +46,6 @@ print(val.rating) # Output: 2.9
 
 - `add_player`: adds a player to the academy
 
-
 #### Example
 ```python
 academy.add_player(val)
@@ -56,7 +54,6 @@ academy.add_player(val)
 
 
 - `find_player`: searches for a player and returns the player object if found
-
 
 #### Example
 ```python
@@ -68,7 +65,6 @@ print(player.age) # Output: 29
 
 - `remove_player`: removes a player from academy
 
-
 #### Example
 ```python
 academy.remove_player("Val")
@@ -77,7 +73,6 @@ academy.find_player("Val") # Raises as error as "Val" has been removed from the 
 
 
 - `update_rating`: updates a player's rating
-
 
 #### Example
 ```python
@@ -89,7 +84,6 @@ print(val.rating) # Output: 9.7
 
 - `average_rating()`: returns the average rating of players in the academy
 
-
 #### Example
 ```python
 academy.average_rating()
@@ -99,12 +93,12 @@ academy.average_rating()
 
 - `top_player()`: returns the player with the highest rating
 
-
 #### Example
 ```python
 academy.top_player()
 # Top player: Val with rating 7.8
 ```
+
 
 
 ## Testing

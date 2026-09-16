@@ -24,7 +24,7 @@ def require_non_empty(value: str, field_name: str, error: type[Exception]) -> No
   if not value.strip():
     raise error(f"{field_name} cannot be empty.")
 
-def validate_rating(value: float | int):
+def validate_rating(value: float | int) -> None:
   """checks that value is either a float or an int
   
   Args:
@@ -41,7 +41,7 @@ def validate_rating(value: float | int):
     raise InvalidPlayerError(f"Player rating must be in the range {MIN_RATING}-{MAX_RATING}.")
 
 
-def require_non_empty_academy(player_list: dict[str, "Player"]):
+def require_non_empty_academy(player_list: type[Academy]) -> None:
   """checks that players dict is not empty
 
   Args:
@@ -55,7 +55,7 @@ def require_non_empty_academy(player_list: dict[str, "Player"]):
     raise AcademyError("No registered players.")
 
 
-def validate_age(value: int):
+def validate_age(value: int) -> None:
   """checks that value is an int
   
   Args:

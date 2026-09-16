@@ -52,7 +52,7 @@ class Player:
     self.position = position
     self.rating = float(rating)
 
-  def __str__(self):
+  def __str__(self) -> str:
     '''returns player in an easy-to-read format.
     
     Returns: str - formatted player info'''

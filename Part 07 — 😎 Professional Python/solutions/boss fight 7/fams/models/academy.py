@@ -6,7 +6,7 @@
 from helpers import require_non_empty
 from helpers import validate_rating
 from helpers import require_non_empty_academy
-
+ 
 # These custom exceptions are needed to expose a more meaningful high-level error interface
 from exceptions import PlayerAlreadyExistsError
 from exceptions import PlayerNotFoundError
@@ -73,7 +73,7 @@ class Academy:
     self.name = name
     self.players: dict[str, Player] = {}
 
-  def __len__(self):
+  def __len__(self) -> int:
     """Returns the total number of registered players in the academy"""
     return len(self.players)
 
@@ -135,7 +135,7 @@ class Academy:
     self.players.pop(player.name.lower())
     return self
   
-  def update_rating(self, name:str, new_rating: float) -> "Academy":
+  def update_rating(self, name:str, new_rating: float | int) -> "Academy":
     """
       Updates player's rating.
         

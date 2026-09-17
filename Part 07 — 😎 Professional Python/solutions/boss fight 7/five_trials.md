@@ -64,15 +64,14 @@ Let someone go through your project for this test.
 
 # 🗡️ TRIAL 5 — PROFESSIONAL JUDGMENT
 Q1. Why shouldn't you catch every exception with `except Exception:`?
-Ans => Because Exception catches all error types and so prevents appropriate handling of specific kinds of errors adequately. 
-
+Ans => Because Exception catches all error types, hides more specific expected error types and even unexpected ones, preventing appropriate handling of specific kinds of errors adequately.
 
 Q2. Why can incorrect type hints be worse than having no type hints?
-Ans => Incorrect type hints are misleading and will lead to more confusion.
+Ans => Incorrect type hints are intentionally misleading, presents a false sense of safety and silences type checkers leading to bugs or crashes down the line. Without type hints, one must apply caution by checking implementation even though its also confusing and perhaps slow.
 
 
 Q3. What makes a good custom exception?
-Ans => A good custom exception should cover a specific expected error type
+Ans => A good custom exception covers a specific expected error type, is more descriptive, could be raised directly or inherit from an appropriate exception class.
 
 
 Q4. Why should documentation describe behavior rather than implementation?
@@ -80,7 +79,7 @@ Ans => To avoid redundancy. The code itself handles implementation, documentatio
 
 
 Q5. Why are edge cases so important in tests?
-Ans => Absolute coverage as they test the extreme limits of expected valid data. 
+Ans => Because tests can also be carried out on rare/unusual situations and not just on standard happy paths
 
 
 Q6. What's the difference between "The code works." and "The code is production-ready."

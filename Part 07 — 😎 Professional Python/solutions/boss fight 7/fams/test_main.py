@@ -91,7 +91,7 @@ def test_add_player_multiple_players(academy_with_players):
 
 @pytest.mark.parametrize(
     "player_name,age,position,rating", 
-    [
+    [ 
         ("Val",27,"CDM",7.8), 
         ("Jude",23,"CAM",8.0)
         ]

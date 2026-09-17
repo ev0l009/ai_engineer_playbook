@@ -792,7 +792,7 @@ For every public method in your service:
 
 ## 🗡️ TRIAL 3 — DOCUMENTATION MASTER
 
-Write:
+Write: 
 
     1. Module docstring
     2. Class docstring

@@ -18,6 +18,11 @@ Raise ValueError — in generic, domain-agnostic code that has no meaningful cus
 Raise a custom exception — when the code belongs to a domain with meaning to add (e.g. PlayerNotFoundError says far more than a bare exception would).
 Let an exception propagate — when the current function can't meaningfully handle the failure and a caller higher up the stack is better positioned to (e.g. remove_player not swallowing find_player's errors).
 
+
+# 🗡️ TRIAL 3 — DOCUMENTATION MASTER
+Let someone go through your project for this test.
+
+
 # 🗡️ TRIAL 2 — TYPE MASTER
 - def __len__(self) -> int: accepts the academy instance and returns the number of players as an int.
 
@@ -42,3 +47,41 @@ Let an exception propagate — when the current function can't meaningfully hand
 ## None is mostly impossible except in Academy.__init__ and Player.__init__ where None is returned and that's more by python default design. None is defered as return value or even optional argument value because on failure an AttributeError would be thrown at the call site that would want to make use of the outcome of a success, so it's better to raise relevant exceptions and stop a delayed crash far from the source and also a potentially empty value.
 
 ## Any is not needed because its too ambiguous and every method clearly knows what to expect and return. This way, type checkers won't be silent even when wrong methods are called on an object, IDES can also give better suggestions related to specific object and clarity is gained.
+
+
+
+
+# 🗡️ TRIAL 4 — PYTEST MASTER
+|Test                                                                  |Category                                                |Why it exists (what regression would this catch?)                                                                                     |
+|----------------------------------------------------------------------|--------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+|test_find_player_when_player_exists                                   |Happy path                                              |Confirms a player can be found after been added to the academy                                                                        |
+|test_add_player_retrieve_added_player                                 |Happy path + parametrization                            |Confirms players can be added and each player's attribute is not misplaced with another player's                                      |
+|test_player_empty_position_raises_invalid_player_error                |Invalid input + parametrization + expected exception    |Proves guard against empty strings works preventing preventing a scenario where when printing player info, position comes out blank   |
+|test_remove_player_raises_player_not_found_error_for_missing_player   |Expected exception                                      |Proves an unregistered player cannot be removed from the academy                                                                      |
+
+
+
+
+# 🗡️ TRIAL 5 — PROFESSIONAL JUDGMENT
+Q1. Why shouldn't you catch every exception with `except Exception:`?
+Ans => Because Exception catches all error types and so prevents appropriate handling of specific kinds of errors adequately. 
+
+
+Q2. Why can incorrect type hints be worse than having no type hints?
+Ans => Incorrect type hints are misleading and will lead to more confusion.
+
+
+Q3. What makes a good custom exception?
+Ans => A good custom exception should cover a specific expected error type
+
+
+Q4. Why should documentation describe behavior rather than implementation?
+Ans => To avoid redundancy. The code itself handles implementation, documentation should handle the why and what and not the how.
+
+
+Q5. Why are edge cases so important in tests?
+Ans => Absolute coverage as they test the extreme limits of expected valid data. 
+
+
+Q6. What's the difference between "The code works." and "The code is production-ready."
+Ans => A production-ready code doesn't just work but has comprehensive data type hinting, error handling, robust testing and documentation and so is more suited to be used by another developer or the public. A code that just works without enforing type hinting and documentation will be confusing and without proper error handling and testing could crash with all sorts of errors and run a very high risk compromised system with corrupted data and leaks

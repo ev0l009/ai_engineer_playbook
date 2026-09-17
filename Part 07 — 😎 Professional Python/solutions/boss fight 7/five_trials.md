@@ -33,12 +33,12 @@ Let an exception propagate — when the current function can't meaningfully hand
 
 - def top_player(self) -> "Player": expects no arguments and returns a player instance.
 
-- def Player.__str__(self) -> str: accepts the player instance an returns a string
+- def Player.__str__(self) -> str: accepts the player instance and returns a string
 
 - def Academy.__init__(self, name: str) -> None: accepts the academy object and returns None
 
 - def Player.__init__(self, name: str, age: int, position: str,rating: float | int) -> None: accepts the player instance, strings for name and position, integer for age, float or integer for rating and returns None
 
-## None is mostly impossible except in Academy.__init__ and Player.__init__ where None is returned and that more by python default design. None is defered as return value or even optional argument value because it not needed.
+## None is mostly impossible except in Academy.__init__ and Player.__init__ where None is returned and that's more by python default design. None is defered as return value or even optional argument value because on failure an AttributeError would be thrown at the call site that would want to make use of the outcome of a success, so it's better to raise relevant exceptions and stop a delayed crash far from the source and also a potentially empty value.
 
-## Any is not needed because its too ambiguous and every method clearly knows what to expect and return. This way, type checkers are happy and clarity is gained.
+## Any is not needed because its too ambiguous and every method clearly knows what to expect and return. This way, type checkers won't be silent even when wrong methods are called on an object, IDES can also give better suggestions related to specific object and clarity is gained.

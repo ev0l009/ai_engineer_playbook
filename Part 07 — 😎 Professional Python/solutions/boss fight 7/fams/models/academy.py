@@ -141,7 +141,7 @@ class Academy:
         
       Args:
         - name (`str`): name of player
-        - new_rating (`float`): new player rating
+        - new_rating (`float | int`): new player rating 
       
       Returns Academy - self, enabling self chaining.
       
@@ -153,7 +153,7 @@ class Academy:
     """
     validate_rating(new_rating)
     player = self.find_player(name)
-    player.rating = new_rating
+    player.rating = float(new_rating)
     return self
   
   def average_rating(self) -> float:

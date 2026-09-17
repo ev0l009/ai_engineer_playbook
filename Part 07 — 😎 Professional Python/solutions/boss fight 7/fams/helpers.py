@@ -38,10 +38,10 @@ def validate_rating(value: float | int) -> None:
   if type(value) is not int and type(value) is not float:
     raise InvalidPlayerError("Player rating must be of type float or int.")
   if value < MIN_RATING or value > MAX_RATING:
-    raise InvalidPlayerError(f"Player rating must be in the range {MIN_RATING}-{MAX_RATING}.")
+    raise InvalidPlayerError(f"Player rating must be in the range {MIN_RATING}-{MAX_RATING}.") 
 
 
-def require_non_empty_academy(player_list: type[Academy]) -> None:
+def require_non_empty_academy(player_list: dict[str, "Player"]) -> None:
   """checks that players dict is not empty
 
   Args:

@@ -149,7 +149,10 @@ def test_remove_player_raises_player_not_found_error_for_missing_player(academy)
     [
         (0.0, 0.0),
         (5.0, 5.0),
-        (10.0,10.0)
+        (10.0,10.0),
+        (1, 1.0),
+        (5, 5.0),
+        (10, 10.0)
     ]
 )
 def test_update_rating(academy, value, expected):
@@ -157,12 +160,15 @@ def test_update_rating(academy, value, expected):
     academy.add_player(Player("Val",27,"CDM",7.8))
     academy.update_rating("Val",value)
     assert academy.find_player('Val').rating == expected
+    assert isinstance(academy.find_player('Val').rating, float)
 
 @pytest.mark.parametrize(
     "value, error",
     [
         (-0.01, InvalidPlayerError),
-        (10.01, InvalidPlayerError)
+        (10.01, InvalidPlayerError),
+        (-1, InvalidPlayerError),
+        (-11, InvalidPlayerError)
     ]
 )
 def test_update_rating_raises_invalid_player_error_for_rating_value_out_of_valid_range(academy, value, error):

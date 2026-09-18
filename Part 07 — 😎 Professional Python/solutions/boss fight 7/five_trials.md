@@ -64,22 +64,23 @@ Let someone go through your project for this test.
 
 # 🗡️ TRIAL 5 — PROFESSIONAL JUDGMENT
 Q1. Why shouldn't you catch every exception with `except Exception:`?
-Ans => Because Exception catches all error types, hides more specific expected error types and even unexpected ones, preventing appropriate handling of specific kinds of errors adequately.
+Ans => Because Exception catches all error types, hides more specific expected error types and even unexpected ones. Take for example a function that searches for players, it raises an error when they are no players to search for, when an empty string is given as name and an error for not finding a player. If at the call site, `except Exception` is used, it would catch all these errors including say an AttributeError or type error that wasn't expected, hiding the real bug.
 
 Q2. Why can incorrect type hints be worse than having no type hints?
 Ans => Incorrect type hints are intentionally misleading, presents a false sense of safety and silences type checkers leading to bugs or crashes down the line. Without type hints, one must apply caution by checking implementation even though its also confusing and perhaps slow.
 
 
 Q3. What makes a good custom exception?
-Ans => A good custom exception covers a specific expected error type, is more descriptive, could be raised directly or inherit from an appropriate exception class.
-
+Ans => A good custom exception covers a specific expected error type, is more descriptive and could be raised directly or inherit from an appropriate exception class, thus it could be caught directly or broadly making error handling more flexible.For example, trying to register an already registered player could trigger a PlayerAlreadyExistsError which is a sub-class error of RegisterationError which is also a sub-class error of AcademyError. So a developer could catch the specific PlayerAlreadyExistsError or catch more broadly as RegisterationError or AcademyError.
+Q3 PARAPHRASED
+A good custom exception targets a specific, anticipated error type and provides descriptive context. It can either be raised directly or inherit from an appropriate base exception class. This hierarchy offers flexible error handling, allowing developers to catch the error explicitly or catch it broadly. For example, attempting to sign up a player who already exists could raise a PlayerAlreadyExistsError. Because this exception inherits from RegistrationError, which itself stems from a top-level AcademyError, it creates a flexible handling chain. A developer can choose to intercept the highly specific player error or catch it more broadly at the registration or academy level.
 
 Q4. Why should documentation describe behavior rather than implementation?
 Ans => To avoid redundancy. The code itself handles implementation, documentation should handle the why and what and not the how.
 
 
 Q5. Why are edge cases so important in tests?
-Ans => Because tests can also be carried out on rare/unusual situations and not just on standard happy paths
+Ans => Because bugs are usually found at boundaries and unexpected states that testing for the happy path alone wouldn't cover. For example if we tested a function that gets the top rated player out all registered players, edge case testing allows us to cover for situations where the academy is empty.
 
 
 Q6. What's the difference between "The code works." and "The code is production-ready."

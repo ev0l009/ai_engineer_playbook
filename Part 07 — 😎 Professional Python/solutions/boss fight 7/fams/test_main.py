@@ -70,7 +70,7 @@ def test_player_empty_position_raises_invalid_player_error(value,error):
 
 @pytest.mark.parametrize(
     "value, error",
-    [
+    [ 
         (-0.01, InvalidPlayerError),
         (10.01, InvalidPlayerError)
     ]

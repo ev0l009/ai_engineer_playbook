@@ -1,5 +1,5 @@
 # 🗡️ TRIAL 1 — EXCEPTION MASTER
-Return a value from a function when it's required by another operation or process for print requires a value which is returned by the academy __len__ method to output the number of registered players
+Return a value from a function when it's required by another operation or process. For example print requires a value which is returned by the academy __len__ method to output the number of registered players
 
 Return None when nothing is expected from a function. Trying to perform some operations on None would throw an AttributeError. In such cases where None must be returned, then every caller must check for it otherwise the outcome will most like be a confusing AttributeError far away from it's true source, hence the need to raise an exception to force resolution at the error source.
 

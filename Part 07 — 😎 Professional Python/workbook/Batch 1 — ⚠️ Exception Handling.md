@@ -31,7 +31,7 @@ By the end of this batch, you should be able to:
 # 🤖 AI Engineer Playbook
 
 # Phase 1 — Python Fluency 🐍
-
+```text
 ├── Foundations                 ✅
 ├── Functions                   ✅
 ├── Collections                 ✅
@@ -52,7 +52,7 @@ By the end of this batch, you should be able to:
 
 🎯 Exit Criteria:
 Writes clean, testable Python
-
+```
 ---
 
 # 🧠 THE BIG IDEA

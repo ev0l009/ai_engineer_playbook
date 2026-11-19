@@ -178,3 +178,67 @@ Master Design Decisions & Architecture Log
 	• Startup case 3 (Corrupted/unreadable file or timeline violation): Fail fast and halt startup with an error—never fall back to an empty state that could overwrite the real file on the next save.
 Ready for the reviewer's response or your next review item whenever you're ready!
 
+
+Here is your complete, updated Master Design Decisions & Architecture Log, structured around What, Why, How, and Limitations / Trade-offs for every decision we finalized.
+
+Master Design Decisions & Architecture Log
+
+
+1. Money Representation (Integer Minor Units)
+
+• What: Store, calculate, and serialize all monetary amounts as whole integers in the currency's smallest subdivision (e.g., 45000 kobo = ₦450.00), paired with an explicit currency code.
+• Why: Binary floating-point numbers cannot represent decimal fractions accurately (0.1 + 0.2 != 0.3), causing cumulative drift in financial totals.
+• How: Transaction.from_dict() enforces Python int values (rejecting floats/booleans), and formatting to major display units happens only in ui/.
+• Limitations: Fractional calculations (such as percentage splits, interest, or FX conversions) still require explicit decimal math and defined rounding rules.
+
+2. Single Source of Truth for Balances
+
+• What: Account balances are derived exclusively from the transaction ledger (credits - debits). No balance field is stored or cached on Account.
+• Why: Storing both a cached balance and a transaction history creates two sources of truth that can drift out of sync.
+• How: services/ sums target_acc_id inflows minus source_acc_id outflows on demand.
+• Limitations: Balance lookup is O(n) over an account's transactions; fast at personal scale (~5,000 transactions), but would require caching or SQL indexing at high volume.
+
+3. Append-Only Ledger & Self-Contained Reversals
+
+• What: Transactions are immutable (never edited or deleted). Mistakes are undone only by recording a new REVERSAL transaction linked via reverses_transaction_id (at most once per original transaction).
+• Why: Preserves a complete, tamper-evident financial audit trail while still letting users fix errors.
+• How: A REVERSAL flips source_acc_id and target_acc_id from the original transaction so money flows in the exact opposite direction (making every row self-contained for balance math).
+• Limitations: Cannot correct typos in descriptions or categories in place—users must reverse and re-enter the transaction.
+
+4. Unified Chronological Balance Rule (BR-10) & Backdating
+
+• What: No account's running balance may drop below ₦0 on any date in history. Backdated transactions (including dates before account.created_at) are allowed as long as this rule holds.
+• Why: Prevents modeling spending money before the account actually held funds on that date, while allowing users to log past receipts out of order.
+• How: One shared function in services/—validate_account_timeline(account_id, transactions)—sorts transactions by (transaction_date, insertion_order) and verifies running_balance >= 0 at every step. Every write (including reversals) and startup's _validate_chronological_balances() calls this single function.
+• Limitations: Strict chronological checking rejects a backdated expense if the funding income was dated later, even if today's total balance is positive.
+
+5. Timezones & Read vs. Write Validation Boundaries
+
+• What: System timestamps (account.created_at) use UTC; user-facing dates and "today" filters use the user's local timezone (e.g., Africa/Lagos). Writes block future dates; read filters allow future end_date values.
+• Why: Eliminates ambiguity around midnight (when UTC and UTC+1 disagree on the date) and allows full calendar-month search presets (e.g., "Sept 1 to Sept 30" run on Sept 15) to work without failing.
+• How: datetime.now(timezone.utc) sets created_at; local timezone .date() validates transaction_date <= today on writes, while search queries only check start_date <= end_date.
+• Limitations: Assumes single-timezone local usage; traveling across timezones could shift what "today" resolves to locally.
+
+6. Account Lifecycle, Visibility & Zero-Balance Invariant
+
+• What: Deactivated accounts are excluded from the main balance list by default, remain visible in a dedicated Deactivated Accounts view (for inspection/reactivation) and in transaction history filters, and must always hold a ₦0 balance.
+• Why: Keeps daily balance views clean without hiding historical spending or stranding closed accounts so users can't find them to reactivate.
+• How: Deactivation checks derived_balance == 0; all transaction and reversal creations verify that referenced accounts are active, blocking any mutations on deactivated accounts.
+• Limitations: Deactivated accounts cannot receive refunds or reversals until explicitly reactivated first.
+
+7. Layer Architecture, Domain Invariants & Omitted Storage Protocol
+
+• What: Unidirectional folder architecture: ui/ → services/ → file_manager/, with models/ and exceptions.py (StorageReadError, StorageWriteError) at the dependency-free base. Storage Protocol is deliberately omitted in v1.
+• Why: Prevents circular imports, keeps domain entities (Account, Transaction) self-validating via __post_init__ / from_dict(), and avoids interface boilerplate for a single local JSON backend.
+• How: file_manager/ imports only models/ and exceptions.py (never services/). Both layers pass WalletEngineData (TypedDict defined in models/). Tests use tmp_path or mocked I/O.
+• Limitations: Migrating from JSON to SQLite later will require updating imports in services/ (or introducing a Protocol at that point).
+
+8. Copy-on-Write State, Atomic Persistence & Startup Recovery
+
+• What: Whole-file JSON persistence (indent=2, accounts stored as a list to avoid duplicate IDs) designed for an advisory target of up to ~5,000 transactions, paired with atomic writes and fail-fast startup recovery.
+• Why: Keeps v1 data human-readable with zero schema migrations, while guaranteeing that failed writes never corrupt live memory or disk state, and failed loads never overwrite real user files with an empty state.
+• How:
+	• Writes: services/ copies WalletEngineData containers (dict(accounts), list(transactions)) and replaces modified Account objects with new instances (never mutating in place). file_manager/ writes .storage.json.tmp, calls flush() + os.fsync(), and swaps via os.replace().
+	• Startup: load_app_data() deletes any stale .tmp file (logging a warning), returns empty state if .storage.json is missing, or raises StorageReadError on malformed JSON, duplicate IDs, broken references (_validate_loaded_data()), or negative timeline balances (_validate_chronological_balances()), halting startup immediately.
+• Limitations: Full-file rewrites (O(n) per save) do not support multi-process concurrency, database isolation, or scales well beyond ~5,000 transactions (which serves as the trigger to migrate file_manager/ to SQLite).
+Ready to proceed to the next phase (coding, writing tests, or reviewing another module) whenever you are!

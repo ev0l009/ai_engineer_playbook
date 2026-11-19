@@ -39,3 +39,71 @@ Key Design Habits to Carry Forward
 • Guard derived state at the source: If Field A is calculated from Table B, protect Table B's write paths to keep Field A valid.
 • Eliminate "or" in specs: Every ambiguity in a specification becomes a bug at boundary conditions (midnight, month-end, zero balances).
 Ready for the next review item whenever you are—just paste it in!
+
+
+Here is your updated Master Design Decisions & Architecture Log, combining all the original rules with every Major and Minor/Moderate refinement we just completed.
+
+Master Design Decisions & Architecture Log
+
+
+1. Data & Domain Rules
+
+• Money Representation (Integer Minor Units):
+	• Store and calculate all amounts as whole integers in the currency's smallest unit (e.g., 45000 kobo = ₦450.00, 1999 cents = $19.99), never floats. Always pair amounts with an explicit ISO currency code.
+• Single Source of Truth for Balance:
+	• Account balances are derived exclusively from transactions (sum of credits minus debits). Do not store or cache a balance field on the Account entity, so balance and transaction history can never drift out of sync.
+• Append-Only Ledger & Reversals (v1 Scope):
+	• Transactions are strictly immutable (no editing or deleting).
+	• Mistakes are corrected only via a reversal—a new offsetting transaction linked to the original (leaving the original record intact). Each transaction can only be reversed once.
+	• Reversals require the account to be active and have enough balance (current_balance - reversal_amount >= 0) so reversing income never creates a negative balance. Transfer reversals apply atomically to both active accounts under the same rule.
+• Backdated Transactions & Account created_at:
+	• account.created_at is stored in timezone-aware UTC (datetime.now(timezone.utc)) strictly as audit/sorting metadata.
+	• Users can record backdated transactions dated before account.created_at (e.g., logging past receipts after creating an account), as long as account balance invariants hold.
+
+2. Timezones & Validation Boundaries
+
+• Explicit Timezone Rule (No "or"):
+	• System audit timestamps (created_at): Always UTC (datetime.now(timezone.utc)).
+	• User-facing calendar dates & "today" filters: Always resolved in the user's local timezone (e.g., Africa/Lagos), avoiding the 11:00 PM–12:00 AM UTC date mismatch.
+• Separate Write Validation from Read Filters:
+	• Writing a transaction: Reject future dates (date > today in local timezone).
+	• Searching / reporting: Allow future end_date values so full calendar presets (like "Sept 1 to Sept 30" queried on Sept 15) work without erroring. Only reject inverted ranges (start_date > end_date).
+
+3. Account Lifecycle & Invariants
+
+• Active Balances vs. Visibility:
+	• Main balance list: Shows only active accounts by default.
+	• Reactivation & inspection: Dedicated Deactivated Accounts view lets users find, inspect, and reactivate closed accounts.
+	• Transaction filters: Deactivated accounts remain selectable in transaction filters so historical reports stay complete.
+• Zero-Balance Deactivation Rule (Enforced at Both Ends):
+	• On deactivation: Verify derived balance equals 0.
+	• On transaction create / reversal: Verify the target account(s) are active—block any new transactions or reversals on deactivated accounts so their balance stays 0.
+
+4. Architecture, Layering & Naming Consistency
+
+• Unidirectional Dependency Rule:
+	• Core Domain (models/, exceptions.py): Zero outward dependencies. Account and Transaction own their own validation inside from_dict() / to_dict().
+	• Services (services/): Holds business rules, balance calculations, and workflows; imports models/ and exceptions.py.
+	• Storage / DAL (storage/): Imports only models/ and exceptions.py (never services/), calling from_dict() / to_dict() for persistence.
+• Consistent Naming & Layout:
+	• Use PEP 8 *Error naming for custom exceptions (e.g., StorageWriteError, not DatabaseWriteException).
+	• Keep folder/module names identical across spec text and diagrams (e.g., ui/, services/, storage/, models/, exceptions.py).
+
+5. Persistence, Scaling & Crash Durability
+
+• Why JSON over SQLite (v1):
+	• Human-readable for easy inspection/debugging, avoids SQL schema migrations while v1 evolves, and pairs directly with to_dict() / from_dict().
+• Scaling Cap & Redesign Trigger:
+	• Whole-file rewrite (O(n) per save) is capped at 5,000 transactions (~1–2 MB). Passing 5,000 transactions, seeing noticeable save latency, or adding multi-user access triggers swapping storage/ to SQLite.
+• Atomic Writes & Crash Recovery:
+	• Every save writes to .storage.json.tmp, calls file.flush() + os.fsync(file.fileno()), and atomically swaps via os.replace().
+	• On startup, if a stale .storage.json.tmp exists from an interrupted write, log a warning and delete .storage.json.tmp, then load the intact .storage.json.
+
+Core Design Checklist for Future Features
+
+1. One source of truth: Never store a value you already derive from a ledger.
+2. Protect invariants on all write paths: Guard both state transitions and underlying events.
+3. Forgiving reads, strict writes: Never let query filters fail on valid calendar windows.
+4. Dependencies point inward: Domain models and errors never import services or storage.
+5. Document limits & recovery: State where your v1 approach breaks and what happens on crash.
+Ready whenever you have more review items to tackle, or let me know if you want to implement any of these rules in Python!

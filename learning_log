@@ -1,0 +1,41 @@
+Here is a concise reference log of every design principle and rule we have covered so far, organized so you can use it as a checklist for future specifications and code reviews.
+
+Design Decisions & Architecture Log
+
+
+1. Money Representation (Integer Minor Units)
+
+• Rule: Always store and calculate money as whole integers in the currency's smallest unit (e.g., 45000 kobo = ₦450.00, 1999 cents = $19.99), never as floating-point numbers.
+• Why: Floats cause rounding drift (0.1 + 0.2 != 0.3). Always pair amounts with an explicit ISO currency code because minor-unit scales differ (0, 2, or 3 decimals).
+
+2. Timezones vs. UTC
+
+• Rule: Never write vague specs like "timezone or UTC." Pick one explicitly per use case:
+	• System audit timestamps (e.g., account creation): Store as timezone-aware UTC (datetime.now(timezone.utc)) so event ordering is unambiguous globally.
+	• User-facing calendar dates & "today" filters: Always resolve relative to the user's local timezone (e.g., Africa/Lagos), because UTC and UTC+1 disagree on the calendar date between 11:00 PM and 12:00 AM UTC.
+
+3. Write Validation vs. Read Filtering
+
+• Rule: Do not apply write/recording restrictions to read/search queries.
+	• Recording a transaction (write): Reject future dates (date > today).
+	• Searching or reporting (read): Allow future end_date values so preset calendar ranges (like "Sept 1 to Sept 30" run on Sept 15) work without throwing errors. Only reject inverted ranges (start_date > end_date).
+
+4. Account Visibility vs. Balance Exclusion
+
+• Rule: Distinguish "excluded from active balances" from "completely invisible."
+	• Main balance list: Show only active accounts by default.
+	• Reactivation & inspection: Provide a dedicated Deactivated Accounts view so users can find and reactivate closed accounts.
+	• Transaction history & filters: Keep deactivated accounts selectable in transaction filters so historical reports remain complete.
+
+5. Enforcing Derived Invariants (Zero-Balance Rule)
+
+• Rule: When a state invariant depends on derived data (e.g., balance is calculated from transactions rather than stored on the account), enforce the rule at every mutation point, not just on state transition:
+	• On deactivation: Verify derived balance equals 0.
+	• On transaction create/edit/delete: Verify the target account is active; block any transaction changes on deactivated accounts so the balance cannot drift from 0.
+
+Key Design Habits to Carry Forward
+
+• Separate reads from writes: Query rules should be forgiving; data-mutation rules should be strict.
+• Guard derived state at the source: If Field A is calculated from Table B, protect Table B's write paths to keep Field A valid.
+• Eliminate "or" in specs: Every ambiguity in a specification becomes a bug at boundary conditions (midnight, month-end, zero balances).
+Ready for the next review item whenever you are—just paste it in!

@@ -107,3 +107,74 @@ Core Design Checklist for Future Features
 4. Dependencies point inward: Domain models and errors never import services or storage.
 5. Document limits & recovery: State where your v1 approach breaks and what happens on crash.
 Ready whenever you have more review items to tackle, or let me know if you want to implement any of these rules in Python!
+
+
+Here is your updated Master Design Decisions & Architecture Log, incorporating all the new reversal, startup, timeline, and domain invariant rules we just finalized.
+
+Master Design Decisions & Architecture Log
+
+
+1. Data & Domain Rules
+
+• Money Representation (Integer Minor Units):
+	• Store and calculate all amounts as whole integers in the currency's smallest unit (e.g., 45000 kobo = ₦450.00, 1999 cents = $19.99), never floats. Always pair amounts with an explicit ISO currency code.
+• Single Source of Truth for Balance:
+	• Account balances are derived exclusively from transactions (credits - debits). Do not store or cache a balance field on the Account entity.
+• Append-Only Ledger & Self-Contained Reversals (v1 Scope):
+	• Transactions are strictly immutable (no editing or deleting).
+	• Mistakes are corrected only via a reversal—a new offsetting transaction linked via reverses_transaction_id (each transaction can only be reversed once).
+	• Account flipping on reversals: A REVERSAL swaps source_acc_id and target_acc_id from the original transaction so every ledger row is self-contained (e.g., reversing an expense with source = A creates a reversal with target = A, flowing money back into A).
+• Strict Transaction Field Invariants (Enforced in Transaction Model):
+	• INCOME: source = null, target = required, reverses_transaction_id = null, amount > 0.
+	• EXPENSE: source = required, target = null, reverses_transaction_id = null, amount > 0.
+	• TRANSFER: source = required, target = required, source != target, reverses_transaction_id = null, amount > 0.
+	• REVERSAL: Flips original source/target (source != target, at least one set), reverses_transaction_id = required, amount > 0.
+• ID Generation & No Duplicate State:
+	• Store "accounts" as a JSON list ([{"id": "acc_...", ...}]) rather than repeating the ID in both a dict key and inner field.
+	• Generate prefixed random IDs (acc_..., trx_...) and check for collisions before inserting so existing records can never be overwritten.
+
+2. Unified "Never Negative" Rule (BR-10)
+
+• One Single Implementation:
+	• Defined in one shared function in services/ (validate_account_timeline(account_id, candidate_transactions)).
+	• Sorts all transactions touching account_id by (transaction_date, insertion_order) and verifies running_balance >= 0 at every single point in time.
+	• Every write operation (INCOME, EXPENSE, TRANSFER, and REVERSAL) runs through this exact same timeline check—no separate balance - amount >= 0 formula.
+• Backdated Transactions:
+	• Allowed (including dates before account.created_at), provided the chronological running balance never dips below ₦0 on any date.
+	• Transactions sharing the same transaction_date are ordered deterministically by insertion order (append position in .storage.json).
+
+3. Timezones & Validation Boundaries
+
+• Explicit Timezone Rule:
+	• System audit timestamps (account.created_at): Always timezone-aware UTC (datetime.now(timezone.utc)).
+	• User-facing calendar dates & "today" filters: Always resolved in the user's local timezone (e.g., Africa/Lagos).
+• Separate Write Validation from Read Filters:
+	• Writing a transaction: Reject future dates (transaction_date > today in local timezone).
+	• Searching / reporting: Allow future end_date values so full calendar presets (e.g., "Sept 1 to Sept 30" run mid-month) work cleanly. Only reject inverted ranges (start_date > end_date).
+
+4. Account Lifecycle & Visibility
+
+• Active Balances vs. Visibility:
+	• Main balance list: Shows only active accounts by default.
+	• Reactivation & inspection: Dedicated Deactivated Accounts view lets users find, inspect, and reactivate closed accounts.
+	• Transaction filters: Deactivated accounts remain selectable in filters so historical reports stay complete.
+• Zero-Balance Deactivation Rule:
+	• On deactivation: Verify derived balance equals 0.
+	• On transaction create / reversal: Verify all referenced accounts are active—block any new transactions or reversals on deactivated accounts so their balance stays 0.
+
+5. Architecture, Startup Recovery & Persistence
+
+• Unidirectional Dependency Rule & Naming:
+	• Core Domain (models/, exceptions.py): Zero outward dependencies. Account and Transaction validate their own fields in __post_init__ / from_dict(). Custom errors use PEP 8 *Error naming (StorageWriteError).
+	• Services (services/): Holds business workflows and validate_account_timeline(); imports models/ and exceptions.py.
+	• Storage (storage/): Imports only models/ and exceptions.py (never services/), using from_dict() / to_dict(). Folder/module names match across spec text and diagrams.
+• Persistence & Scaling Trigger (v1):
+	• JSON storage chosen for human readability, zero schema migrations during v1, and direct mapping to to_dict() / from_dict().
+	• Capped at 5,000 transactions (~1–2 MB); crossing 5,000 transactions, slow saves, or multi-user needs triggers migrating storage/ to SQLite.
+• Atomic Writes & Strict Startup Recovery:
+	• Saves write to .storage.json.tmp, call flush() + os.fsync(), and swap via os.replace().
+	• Startup case 1 (No file): Initialize empty state cleanly.
+	• Startup case 2 (Valid file): Delete any stale .storage.json.tmp (log warning), load via from_dict(), and run validate_account_timeline() on all accounts.
+	• Startup case 3 (Corrupted/unreadable file or timeline violation): Fail fast and halt startup with an error—never fall back to an empty state that could overwrite the real file on the next save.
+Ready for the reviewer's response or your next review item whenever you're ready!
+

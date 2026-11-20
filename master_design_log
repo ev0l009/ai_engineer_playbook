@@ -285,3 +285,52 @@ Master Design Decisions & Architecture Log (Addendum)
 • How: Automated startup tests load valid_sample_storage.json end-to-end through load_app_data(), _validate_loaded_data(), and _validate_chronological_balances().
 • Limitations: Any future v2 field rename or required field addition must ship with a dedicated JSON migration/upcaster helper before loading v1 files.
 Your Master Design Log is now completely up to date—let me know whenever you're ready to jump into code, tests, or any remaining review feedback!
+
+
+Here is the concise Addendum (Sections 14–19) capturing only the new decisions finalized since Section 13, formatted in your What / Why / How / Limitations structure.
+
+Master Design Decisions & Architecture Log (Addendum 2)
+
+
+14. Domain Vocabulary Standardization (INCOME, EXPENSE, TRANSFER, REVERSAL)
+
+• What: Standardize on INCOME, EXPENSE, TRANSFER, and REVERSAL (TrxType enum values "income", "expense", "transfer", "reversal") across code, JSON fixtures, and documentation, retiring "deposit" and "withdraw".
+• Why: Everyday phrasing like "withdraw ₦20,000 from Main Bank" (ATM cash withdrawal into a cash wallet) or "deposit cash into bank" describes a transfer between accounts, not spending or earning. INCOME and EXPENSE match the user's financial intent directly and align with BR-20.
+• How: TrxType in models/ and tests/fixtures/valid_sample_storage.json use "income", "expense", "transfer", and "reversal".
+• Limitations: Any pre-existing draft JSON files using "deposit" or "withdraw" must be updated to "income" / "expense" before loading.
+
+15. Split Exception Hierarchy (BusinessRuleError vs. DataIntegrityError) & Load-Time Conversion
+
+• What: Split WalletError into two branches: Persistence/File Errors (StorageReadError, StorageWriteError, DataIntegrityError) and Recoverable User Action Errors (BusinessRuleError → NegativeBalanceError, ReversalError, InvalidCategoryError).
+• Why: ui/ must distinguish between "your stored file is damaged—halt startup" (DataIntegrityError) and "your action violated a business rule—show a message and retry" (BusinessRuleError) without guessing from call sites.
+• How: Live operations raise BusinessRuleError subclasses (NegativeBalanceError carries account_id: str, date: date, and balance: int). At load time, from_dict() (in models/) and WalletEngine.load_data() (in services/) catch BusinessRuleError (plus key/type/value errors) and raise DataIntegrityError(str(exc)) from exc, preserving both the formatted message and __cause__ attributes.
+• Limitations: Startup wrapping requires explicit try ... except BusinessRuleError boundaries at from_dict() and load_data().
+
+16. Centralized Naira-Only Output Formatter
+
+• What: Define one centralized, unit-tested output formatter format_minor_to_major(amount_minor: int) -> str (e.g., -500000 kobo → "-₦5,000.00"), with no currency parameter.
+• Why: Prevents inline / 100 division errors across UI messages and avoids dead/untested multi-currency code in a strictly Naira-only (NGN) v1 app.
+• How: utils/formatting.py houses format_minor_to_major(), and ui/ calls it for all balance displays, transaction tables, and NegativeBalanceError messages.
+• Limitations: Adding multi-currency support in a future version will require updating this formatter signature and introducing per-currency exponent rules.
+
+17. Canonical BR-20 Category Alignment (Spec Wins Over Code Drift)
+
+• What: Keep BR-20's original category set as authoritative (food, bills, utilities, transport, healthcare, entertainment, shopping, other) and align ExpCatOpts in models/ to match it 1:1.
+• Why: Accidental drift to "airtime" in code blurred the boundary with "bills", whereas keeping "utilities" cleanly separates recurring invoices/rent (bills) from power, water, internet, and airtime/data (utilities).
+• How: Only TrxType.EXPENSE carries an ExpCatOpts value; INCOME, TRANSFER, and REVERSAL require category = None.
+• Limitations: Users cannot add custom categories at runtime in v1.
+
+18. Clock Function, Local "Today" & System-Assigned Reversal Dates
+
+• What: now_utc() -> datetime returns a timezone-aware UTC datetime (used for account.created_at with +00:00), while local_today(tz=ZoneInfo("Africa/Lagos")) -> date derives the user's local calendar date. Every REVERSAL has its transaction_date set automatically to local_today().
+• Why: Separates global UTC audit timestamps from local calendar dates, and ensures reversals reflect when the correction actually happened rather than falsely failing when an early INCOME is reversed after later expenses.
+• How: services/ injects tz (defaulting to Africa/Lagos) into local_today() for deterministic testing, validates transaction_date <= local_today() on new entries, and assigns reversal.transaction_date = local_today() automatically.
+• Limitations: Users cannot backdate a reversal to a past calendar date.
+
+19. Same-Day Chronological Ordering (Credits Before Debits)
+
+• What: Within the same transaction_date, validate_account_timeline() sorts inflows (INCOME and REVERSAL credits) before outflows (EXPENSE, TRANSFER debits, and REVERSAL debits), using insertion_order as the tie-breaker within each group.
+• Why: Transactions store a calendar date without time-of-day; ordering same-day credits before debits prevents false NegativeBalanceError rejections when a user logs an afternoon expense before logging a morning salary received on the same day.
+• How: validate_account_timeline() sorts by (trx.transaction_date, 0 if is_inflow else 1, insertion_order).
+• Limitations: Assumes same-day inflows occurred before same-day outflows when exact intra-day timestamps are absent.
+Ready for Batch 3b-2 (deactivation/reactivation/rename rules, amount parser + max amount limit, updated invariants table, and ID generation) whenever you're ready!

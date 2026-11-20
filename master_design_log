@@ -242,3 +242,46 @@ Master Design Decisions & Architecture Log
 	• Startup: load_app_data() deletes any stale .tmp file (logging a warning), returns empty state if .storage.json is missing, or raises StorageReadError on malformed JSON, duplicate IDs, broken references (_validate_loaded_data()), or negative timeline balances (_validate_chronological_balances()), halting startup immediately.
 • Limitations: Full-file rewrites (O(n) per save) do not support multi-process concurrency, database isolation, or scales well beyond ~5,000 transactions (which serves as the trigger to migrate file_manager/ to SQLite).
 Ready to proceed to the next phase (coding, writing tests, or reviewing another module) whenever you are!
+
+
+
+Here is the concise Addendum (Sections 9–13) to append directly to your existing Master Design Decisions & Architecture Log, using the same What / Why / How / Limitations format.
+
+Master Design Decisions & Architecture Log (Addendum)
+
+
+9. Layered Exception Hierarchy (exceptions.py)
+
+• What: Replace a single read error with a structured hierarchy under WalletError: StorageReadError, StorageWriteError, DataIntegrityError, and NegativeBalanceError(DataIntegrityError) (carrying account_id, date, and balance attributes).
+• Why: Different failure modes require different user recovery actions (fixing broken JSON syntax vs. fixing a specific invalid record or negative date) and originate in different layers.
+• How: file_manager/ raises StorageReadError (I/O or JSON syntax errors) and DataIntegrityError (bad root structure or duplicate JSON keys); models/ raises DataIntegrityError in from_dict(); services/ raises DataIntegrityError (broken references/duplicate transaction IDs) and NegativeBalanceError (chronological balance violations).
+• Limitations: Adding new validation rules requires mapping them explicitly to the right exception subclass rather than raising generic ValueErrors.
+
+10. Entity Mutability & Clone-Before-Mutate Rule
+
+• What: Transaction is strictly immutable (@dataclass(frozen=True, kw_only=True)), while Account is controlled-mutable (read-only @property getters for id, account_type, and created_at; validated @property setter for name; explicit methods deactivate() / reactivate() for status).
+• Why: Freezing Transaction guarantees ledger immutability at the type level, while controlled mutability on Account keeps name validation and status transitions encapsulated inside the entity.
+• How: Because Account is mutable, services/ never mutates a live instance in self._data["accounts"]—it clones the target account (copy.copy(account)), applies the setter or status method to the clone, and stores the clone in proposed_data["accounts"] until os.replace() succeeds.
+• Limitations: Relies on services/ consistently cloning Account before mutation, which must be enforced via failed-write unit tests asserting that live Account instances remain unchanged.
+
+11. Canonical JSON Shape & Duplicate-Key Protection (object_pairs_hook)
+
+• What: Store accounts as a JSON object keyed by account_id (dict[str, AccDict], omitting "id" inside the inner value object) and transactions as a JSON list (list[TrxDict]), matching JSONData.
+• Why: Eliminates duplicated account IDs inside JSON while preserving direct key-based structure.
+• How: file_manager/ passes a custom object_pairs_hook into json.load() to detect duplicate keys in hand-edited JSON files and raise DataIntegrityError, and injects the outer key as id when calling Account.from_dict(acc_id, data).
+• Limitations: object_pairs_hook runs on every JSON object parsed during load, adding minor CPU overhead (negligible at our ~5,000-transaction personal scale).
+
+12. Enum Conventions & Expense Category Scope (BR-20)
+
+• What: Persist all enum values as lowercase strings (AccType: "bank", "cash", "savings", "mobile"; AccStat: "active", "inactive"; TrxType: "deposit", "withdraw", "transfer", "reversal"; ExpCatOpts: "food", "bills", "transport", "airtime", "health", "shopping", "entertainment", "others"). Only withdraw transactions carry an expense category.
+• Why: Centralizes valid options in utils/constants.py / models/ enums and prevents deposit, transfer, or reversal entries from polluting expense category reports.
+• How: Transaction enforces category in ExpCatOpts when trx_type == TrxType.WITHDRAW and category is None for all other transaction types.
+• Limitations: Changing or renaming an enum string value in a future version is a breaking storage change.
+
+13. Schema Evolution Caveat & Automated Sample Fixture
+
+• What: Acknowledge that strict from_dict() key validation requires explicit migration scripts for future schema changes, and store the canonical sample JSON as an automated test fixture (tests/fixtures/valid_sample_storage.json).
+• Why: Strict deserialization rejects missing or renamed keys with DataIntegrityError (so schema changes across versions are not automatic), and testing the sample JSON through the real loader prevents documentation examples from drifting out of sync with code rules.
+• How: Automated startup tests load valid_sample_storage.json end-to-end through load_app_data(), _validate_loaded_data(), and _validate_chronological_balances().
+• Limitations: Any future v2 field rename or required field addition must ship with a dedicated JSON migration/upcaster helper before loading v1 files.
+Your Master Design Log is now completely up to date—let me know whenever you're ready to jump into code, tests, or any remaining review feedback!

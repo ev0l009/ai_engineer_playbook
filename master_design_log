@@ -334,3 +334,28 @@ Master Design Decisions & Architecture Log (Addendum 2)
 • How: validate_account_timeline() sorts by (trx.transaction_date, 0 if is_inflow else 1, insertion_order).
 • Limitations: Assumes same-day inflows occurred before same-day outflows when exact intra-day timestamps are absent.
 Ready for Batch 3b-2 (deactivation/reactivation/rename rules, amount parser + max amount limit, updated invariants table, and ID generation) whenever you're ready!
+
+
+
+
+
+
+Here is the concise Addendum 3 (Sections 20–21) capturing the two refinements we just finalized, formatted in your What / Why / How / Limitations structure to append directly to your Master Design Log.
+
+Master Design Decisions & Architecture Log (Addendum 3)
+
+
+20. Account-Relative Same-Day Ordering (End-of-Day Closing Balance >= 0)
+
+• What: Within validate_account_timeline(account_id, transactions), same-day priority is determined by account-relative direction (0 if target_acc_id == account_id [inflow], 1 if source_acc_id == account_id [outflow]), rather than by trx_type. Mathematically, this means every calendar day's closing balance (opening_balance + day_inflows - day_outflows) must be >= 0.
+• Why: A TRANSFER (A -> B) is an outflow for A (1) and an inflow for B (0). Sorting by trx_type previously misclassified incoming transfers as debits for B. Additionally, once same-day inflows run first, intra-day debit order cannot dip below the day's closing balance, so end-of-day closing balance >= 0 is the exact invariant.
+• How: validate_account_timeline() sorts each account's transactions by (trx.transaction_date, 0 if trx.target_acc_id == account_id else 1, insertion_order) and verifies running_balance >= 0 across every step.
+• Limitations: Intra-day overdrafts (e.g., spending before receiving funds on the same calendar day) are permitted as long as the day closes at >= 0.
+
+21. Separation of Raw Exception Data (exceptions.py) vs. User-Facing Formatting (ui/)
+
+• What: exceptions.py stores only raw domain values (account_id, date, balance in minor units) and a technical fallback string, while ui/ formats all human-readable startup and runtime error messages using format_minor_to_major() from utils/.
+• Why: Keeps exceptions.py completely dependency-free (never importing utils/ or models/) while ensuring format_minor_to_major() remains the single source of kobo-to-naira display formatting across both startup errors and live command rejections.
+• How: When ui/ catches DataIntegrityError on startup (reading structured attributes from exc or exc.__cause__) or BusinessRuleError during user commands, ui/ resolves any account display name and calls utils.formatting.format_minor_to_major(balance) to render the final message.
+• Limitations: Any non-UI caller (such as raw CLI tracebacks or logs) sees the technical minor-unit fallback string rather than formatted Naira.
+Ready for Batch 3b-2 (deactivation/reactivation/rename rules, amount parser + max amount limit, updated invariants table, and ID generation) whenever you're ready to drop the details!
